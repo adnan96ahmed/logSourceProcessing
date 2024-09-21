@@ -5,22 +5,20 @@ const MinHeap = require('heap'); // Using a min-heap to sort logs by date
 
 module.exports = async (logSources, printer) => {
   const heap = new MinHeap((a, b) => a.log.date - b.log.date);
-  await Promise.all(
-    logSources.map(async (source, index) => {
-      const log = await source.popAsync();
-      if (log) {
-        heap.push({ log, index });
-      }
-    })
-  );
+
+  const addLogSourceToHeap = async (index) => {
+    const log = await logSources[index].popAsync();
+    if (log) {
+      heap.push({ log, index });
+    }
+  };
+
+  await Promise.all(logSources.map((_, index) => addLogSourceToHeap(index)));
 
   while (!heap.empty()) {
     const { log, index } = heap.pop();
     printer.print(log);
-    const nextLog = await logSources[index].popAsync();
-    if (nextLog) {
-      heap.push({ log: nextLog, index });
-    }
+    addLogSourceToHeap(index);
   }
 
   printer.done();
